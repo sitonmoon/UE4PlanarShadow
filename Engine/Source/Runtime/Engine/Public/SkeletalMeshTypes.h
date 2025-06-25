@@ -236,6 +236,7 @@ protected:
 
 	FMaterialRelevance MaterialRelevance;
 
+	UMaterialInterface* OverlayMaterial;
 
 	/** info for section element in an LOD */
 	struct FSectionElementInfo

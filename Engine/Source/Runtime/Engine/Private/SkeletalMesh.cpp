@@ -4993,6 +4993,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 		,	FeatureLevel(GetScene().GetFeatureLevel())
 		,	bMaterialsNeedMorphUsage_GameThread(false)
 		,	MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
+		, 	OverlayMaterial(Component->OverlayMaterial)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		,	DebugDrawColor(Component->GetDebugDrawColor())
 #endif
@@ -5109,6 +5110,17 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 					UseMaterialIndex
 					));
 			MaterialsInUse_GameThread.Add(Material);
+		}
+
+		//SkeletalMesh检查Material的Usage是否正确,避免未勾选"Used with Skeletal mesh"引发编辑器崩溃
+		UMaterialInterface* MaterialInterfaceOverlay = Component->OverlayMaterial;
+		if (MaterialInterfaceOverlay != nullptr)
+		{
+			if (!MaterialInterfaceOverlay->CheckMaterialUsage_Concurrent(MATUSAGE_SkeletalMesh))
+			{
+				MaterialInterfaceOverlay = UMaterial::GetDefaultMaterial(MD_Surface);
+				UE_LOG(LogSkeletalMesh, Error, TEXT("Overlay material with missing usage flag was applied to skeletal mesh %s"), *Component->SkeletalMesh->GetPathName());
+			}
 		}
 	}
 
@@ -5405,6 +5417,17 @@ void FSkeletalMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* 
 					BatchElement.IndexBuffer = LODData.MultiSizeIndexContainer.GetIndexBuffer();
 													
 					PDI->DrawMesh(MeshElement, ScreenSize);
+
+					if (OverlayMaterial != nullptr)
+					{
+						FMeshBatch OverlayMeshBatch(MeshElement);
+						OverlayMeshBatch.CastShadow = false;
+						OverlayMeshBatch.bSelectable = false;
+						OverlayMeshBatch.bUseForDepthPass = false;
+						OverlayMeshBatch.bUseSelectionOutline = false;
+						OverlayMeshBatch.MaterialRenderProxy = OverlayMaterial->GetRenderProxy();
+						PDI->DrawMesh(OverlayMeshBatch, FLT_MAX);
+					}
 				}
 			}
 		}
@@ -5687,6 +5710,18 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			INC_DWORD_STAT_BY(STAT_GPUSkinVertices,(uint32)(bIsCPUSkinned ? 0 : NumVertices));
 			INC_DWORD_STAT_BY(STAT_SkelMeshTriangles,Mesh.GetNumPrimitives());
 			INC_DWORD_STAT(STAT_SkelMeshDrawCalls);
+
+			if (OverlayMaterial != nullptr)
+			{
+				FMeshBatch& OverlayMeshBatch = Collector.AllocateMesh();
+				OverlayMeshBatch = Mesh;
+				OverlayMeshBatch.CastShadow = false;
+				OverlayMeshBatch.bSelectable = false;
+				OverlayMeshBatch.bUseForDepthPass = false;
+				OverlayMeshBatch.bUseSelectionOutline = false;
+				OverlayMeshBatch.MaterialRenderProxy = OverlayMaterial->GetRenderProxy();
+				Collector.AddMesh(ViewIndex, OverlayMeshBatch);
+			}
 		}
 	}
 }

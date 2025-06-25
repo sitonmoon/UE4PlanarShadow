@@ -2231,6 +2231,11 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 			{
 				OutMaterials[MaterialIndex++] = Kvp.Value;
 			}
+
+			if (OverlayMaterial != nullptr)
+			{
+				OutMaterials.Add(OverlayMaterial);
+			}
 		}
 	}
 }

@@ -109,6 +109,12 @@ FMaterialRelevance UMeshComponent::GetMaterialRelevance(ERHIFeatureLevel::Type I
 		}
 		Result |= MaterialInterface->GetRelevance_Concurrent(InFeatureLevel);
 	}
+
+	if (OutlineMaterial != nullptr)
+	{
+		Result |= OutlineMaterial->GetRelevance_Concurrent(InFeatureLevel);
+	}
+
 	return Result;
 }
 
@@ -173,6 +179,11 @@ void UMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials,
 		{
 			OutMaterials.Add(MaterialInterface);
 		}
+	}
+	
+	if (OutlineMaterial != nullptr)
+	{
+		OutMaterials.Add(OutlineMaterial);
 	}
 }
 

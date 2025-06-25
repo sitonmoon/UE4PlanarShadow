@@ -41,6 +41,9 @@ public:
 
 	/** Returns override Materials count */
 	virtual int32 GetNumOverrideMaterials() const;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Materials, Meta = (ToolTip = "Overlay material used for extra render pass."))
+	UMaterialInterface* OverlayMaterial;
 
 #if WITH_EDITOR
 	/*
